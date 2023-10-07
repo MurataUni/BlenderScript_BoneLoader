@@ -3,6 +3,12 @@ Boneを操作するBlender用スクリプト
 
 This software is released under the Apache License 2.0, see LICENSE.txt.
 
+## Version
+
+0.2.2
+
+(https://github.com/MurataUni/Harbor3d のバージョンと対応)
+
 ## Description
 
 以下の機能を実装

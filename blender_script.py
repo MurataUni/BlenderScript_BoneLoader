@@ -28,30 +28,31 @@ def export_json(export_file):
     dict['y'] = amt.pose.bones[k].rotation_euler.y
     dict['x'] = amt.pose.bones[k].rotation_euler.x
     #
-    is_disconnected_to_parent = has_parent and amt.pose.bones[k].parent.tail !=  amt.pose.bones[k].head
-    dict['is_disconnected_to_parent'] = is_disconnected_to_parent
-    if is_disconnected_to_parent:
-      delta = {}
-      delta['x'] = amt.pose.bones[k].head.x - amt.pose.bones[k].parent.tail.x
-      delta['y'] = amt.pose.bones[k].head.y - amt.pose.bones[k].parent.tail.y
-      delta['z'] = amt.pose.bones[k].head.z - amt.pose.bones[k].parent.tail.z
-      dict['parent_offset'] = delta
+    location = {}
+    location['x'] = amt.pose.bones[k].location.x
+    location['y'] = amt.pose.bones[k].location.y
+    location['z'] = amt.pose.bones[k].location.z
+    dict['location'] = location
     bone_info[k] = dict
 
   with open(export_file, 'wt') as f:
       json.dump(bone_info, f, indent=2)
 
-  bpy.ops.object.mode_set(mode='POSE')
+  bpy.ops.object.mode_set(mode='OBJECT')
 
-def import_json(import_file):
-  if bpy.context.mode != 'OBJECT':
-    raise Exception("Error: Current mode is not OBJECT mode")
-
+def import_postures(import_file):
   postures = None
   with open(import_file) as f:
     postures = json.load(f)
   if postures == None:
     raise Exception("Error: json load failed")
+  return postures
+
+def load_bones(json_postures, divided_files_folder):
+  if bpy.context.mode != 'OBJECT':
+    raise Exception("Error: Current mode is not OBJECT mode")
+
+  postures = import_postures(json_postures)
 
   amt = bpy.data.objects['Armature']
   bpy.ops.object.select_all(action='DESELECT')
@@ -63,7 +64,18 @@ def import_json(import_file):
   for k in postures.keys():
     posture = postures[k]
     if not k in amt.data.edit_bones.keys():
-      bone = amt.data.edit_bones.new(k)
+      bone_new = amt.data.edit_bones.new(k)
+      bone_new.roll = 0.
+      bone_new.length = posture['length']
+  
+  if divided_files_folder != None:
+    bpy.ops.object.mode_set(mode='OBJECT')
+    wait_paint(divided_files_folder)
+    amt = bpy.data.objects['Armature']
+    bpy.ops.object.select_all(action='DESELECT')
+    amt.select_set(True)
+    bpy.context.view_layer.objects.active = amt
+    bpy.ops.object.mode_set(mode='EDIT')
 
   for k in amt.data.edit_bones.keys():
     if not k in postures.keys():
@@ -76,37 +88,6 @@ def import_json(import_file):
   bone_keys = amt.data.edit_bones.keys()
   bone_keys.sort(key=lambda k: len(amt.data.edit_bones[k].parent_recursive))
 
-  for k in bone_keys:
-    if not k in postures.keys():
-      continue
-    posture = postures[k]
-    target_edit_bone = amt.data.edit_bones[k]
-    
-    has_parent = target_edit_bone.parent != None
-    if has_parent:
-      parent = target_edit_bone.parent
-      if posture['is_disconnected_to_parent']:
-        target_edit_bone.parent = None
-        target_edit_bone.parent = parent
-        
-        offset = posture['parent_offset']
-        
-        target_edit_bone.head.x = parent.tail.x + offset['x']
-        target_edit_bone.head.y = parent.tail.y + offset['y']
-        target_edit_bone.head.z = parent.tail.z + offset['z']
-        target_edit_bone.tail.x = target_edit_bone.head.x
-        target_edit_bone.tail.y = target_edit_bone.head.y
-        target_edit_bone.tail.z = target_edit_bone.head.z + posture['length']
-      else:
-        target_edit_bone.head.x = parent.tail.x
-        target_edit_bone.head.y = parent.tail.y
-        target_edit_bone.head.z = parent.tail.z
-        target_edit_bone.tail.x = target_edit_bone.head.x
-        target_edit_bone.tail.y = target_edit_bone.head.y
-        target_edit_bone.tail.z = target_edit_bone.head.z + posture['length']
-    target_edit_bone.roll = 0.
-    target_edit_bone.length = posture['length']
-
   bpy.ops.object.mode_set(mode='POSE')
 
   for k in amt.pose.bones.keys():
@@ -117,6 +98,13 @@ def import_json(import_file):
     amt.pose.bones[k].rotation_euler.z = posture['z']
     amt.pose.bones[k].rotation_euler.y = posture['y']
     amt.pose.bones[k].rotation_euler.x = posture['x']
+    if 'location' in posture:
+      location = posture['location']
+      amt.pose.bones[k].location[0] = location['x']
+      amt.pose.bones[k].location[1] = location['y']
+      amt.pose.bones[k].location[2] = location['z']
+    
+  bpy.ops.object.mode_set(mode='OBJECT')
 
 def wait_paint(divided_files_folder):
   if bpy.context.mode != 'OBJECT':
@@ -146,12 +134,11 @@ def wait_paint(divided_files_folder):
     for vert in obj.data.vertices:
       index_list.append(vert.index)
     vg.add(index_list, 1.0, 'REPLACE')
+    
+  bpy.ops.object.mode_set(mode='OBJECT')
 
-# import_file = r'jsonファイルのフルパス'
-# import_json(import_file)
+posture_json = r'インポートするjsonファイルのフルパス'
+folder_parts = r'パーツのフォルダのフルパス'
+load_bones(posture_json, folder_parts)
 
-# export_file = r'jsonファイルのフルパス'
-# export_json(export_file)
-
-#　divided_files_folder = r'分割したSTLファイルの配置先フォルダのフルパス'
-#　wait_paint(divided_files_folder)
+#export_json(r'出力先のjsonファイルのフルパス')
