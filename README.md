@@ -5,7 +5,7 @@ This software is released under the Apache License 2.0, see LICENSE.txt.
 
 ## Version
 
-0.2.2
+0.2.4
 
 (https://github.com/MurataUni/Harbor3d のバージョンと対応)
 

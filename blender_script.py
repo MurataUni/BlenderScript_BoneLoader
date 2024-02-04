@@ -33,6 +33,10 @@ def export_json(export_file):
     location['y'] = amt.pose.bones[k].location.y
     location['z'] = amt.pose.bones[k].location.z
     dict['location'] = location
+    #
+    if amt.pose.bones[k].scale[0] != 1.0:
+        dict['scale'] = amt.pose.bones[k].scale[0]
+    #
     bone_info[k] = dict
 
   with open(export_file, 'wt') as f:
@@ -103,6 +107,8 @@ def load_bones(json_postures, divided_files_folder):
       amt.pose.bones[k].location[0] = location['x']
       amt.pose.bones[k].location[1] = location['y']
       amt.pose.bones[k].location[2] = location['z']
+    if 'scale' in posture:
+      amt.pose.bones[k].scale = [posture['scale'], posture['scale'], posture['scale']]
     
   bpy.ops.object.mode_set(mode='OBJECT')
 
