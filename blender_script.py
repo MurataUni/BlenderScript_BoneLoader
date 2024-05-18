@@ -94,21 +94,7 @@ def load_bones(json_postures, divided_files_folder):
 
   bpy.ops.object.mode_set(mode='POSE')
 
-  for k in amt.pose.bones.keys():
-    if not k in postures.keys():
-      continue
-    posture = postures[k]
-    amt.pose.bones[k].rotation_mode = 'XYZ'
-    amt.pose.bones[k].rotation_euler.z = posture['z']
-    amt.pose.bones[k].rotation_euler.y = posture['y']
-    amt.pose.bones[k].rotation_euler.x = posture['x']
-    if 'location' in posture:
-      location = posture['location']
-      amt.pose.bones[k].location[0] = location['x']
-      amt.pose.bones[k].location[1] = location['y']
-      amt.pose.bones[k].location[2] = location['z']
-    if 'scale' in posture:
-      amt.pose.bones[k].scale = [posture['scale'], posture['scale'], posture['scale']]
+  apply_pose(amt, postures)
     
   bpy.ops.object.mode_set(mode='OBJECT')
 
@@ -143,8 +129,45 @@ def wait_paint(divided_files_folder):
     
   bpy.ops.object.mode_set(mode='OBJECT')
 
+def apply_pose(amt, postures):
+  bpy.ops.object.mode_set(mode='POSE')
+
+  for k in amt.pose.bones.keys():
+    if not k in postures.keys():
+      continue
+    posture = postures[k]
+    amt.pose.bones[k].rotation_mode = 'XYZ'
+    amt.pose.bones[k].rotation_euler.z = posture['z']
+    amt.pose.bones[k].rotation_euler.y = posture['y']
+    amt.pose.bones[k].rotation_euler.x = posture['x']
+    if 'location' in posture:
+      location = posture['location']
+      amt.pose.bones[k].location[0] = location['x']
+      amt.pose.bones[k].location[1] = location['y']
+      amt.pose.bones[k].location[2] = location['z']
+    if 'scale' in posture:
+      amt.pose.bones[k].scale = [posture['scale'], posture['scale'], posture['scale']]
+
+def load_poses(json_postures):
+  if bpy.context.mode != 'OBJECT':
+    raise Exception("Error: Current mode is not OBJECT mode")
+  
+  amt = bpy.data.objects['Armature']
+  bpy.ops.object.select_all(action='DESELECT')
+  amt.select_set(True)
+  bpy.context.view_layer.objects.active = amt
+
+  bpy.ops.object.mode_set(mode='EDIT')
+
+  postures = import_postures(json_postures)
+  apply_pose(amt, postures)
+
+  bpy.ops.object.mode_set(mode='OBJECT')
+
 posture_json = r'インポートするjsonファイルのフルパス'
 folder_parts = r'パーツのフォルダのフルパス'
 load_bones(posture_json, folder_parts)
 
 #export_json(r'出力先のjsonファイルのフルパス')
+
+#load_poses(posture_json)
